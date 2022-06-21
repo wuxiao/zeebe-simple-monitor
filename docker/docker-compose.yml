@@ -20,13 +20,62 @@ services:
     networks:
       - zeebe_network
 
+  simple-monitor-in-memory:
+    container_name: zeebe-simple-monitor-in-memory
+    image: ghcr.io/camunda-community-hub/zeebe-simple-monitor:2.3.0
+    environment:
+      - zeebe.client.broker.gateway-address=zeebe:26500
+      - zeebe.client.worker.hazelcast.connection=zeebe:5701
+    ports:
+      - "8082:8082"
+    depends_on:
+      - zeebe
+    networks:
+      - zeebe_network
+    profiles:
+      - in-memory
+
+  simple-monitor-postgres:
+    container_name: zeebe-simple-monitor-postgres
+    image: ghcr.io/camunda-community-hub/zeebe-simple-monitor:2.3.0
+    environment:
+      - zeebe.client.broker.gateway-address=zeebe:26500
+      - zeebe.client.worker.hazelcast.connection=zeebe:5701
+      - spring.datasource.url=jdbc:postgresql://postgres:5432/postgres
+      - spring.datasource.username=postgres
+      - spring.datasource.password=zeebe
+      - spring.datasource.driverClassName=org.postgresql.Driver
+      - spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+    ports:
+      - "8082:8082"
+    depends_on:
+      - zeebe
+      - postgres
+    networks:
+      - zeebe_network
+    profiles:
+      - postgres
+
+  postgres:
+    image: postgres:12.2
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: zeebe
+    volumes:
+      - postgres-data:/var/lib/postgresql/data/
+    networks:
+      - zeebe_network
+    profiles:
+      - postgres
+
+
   simple-monitor-mysql8:
     container_name: zeebe-simple-monitor-mysql8
     image: ghcr.io/camunda-community-hub/zeebe-simple-monitor:2.3.0
     environment:
       - zeebe.client.broker.gateway-address=zeebe:26500
       - zeebe.client.worker.hazelcast.connection=zeebe:5701
-      - spring.datasource.url=jdbc:mysql://ww-F57.local:3307/test_camunda?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true&nullCatalogMeansCurrent=true&zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai
+      - spring.datasource.url=jdbc:mysql://ww-F57.local:3307/zeebe_test?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true&nullCatalogMeansCurrent=true&zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai
       - spring.datasource.username=root
       - spring.datasource.password=123456
       - spring.datasource.driverClassName=com.mysql.cj.jdbc.Driver
@@ -37,6 +86,9 @@ services:
       - zeebe
     networks:
       - zeebe_network
+    profiles:
+      - mysql8
+
   zeebe-script-worker:
     container_name: zeebe-script-worker
     image: ghcr.io/camunda-community-hub/zeebe-script-worker:1.0.0
