@@ -7,7 +7,7 @@ networks:
 services:
   zeebe:
     container_name: zeebe_broker
-    image: camunda/zeebe:1.3.4
+    image: camunda/zeebe:1.3.10
     environment:
       - ZEEBE_LOG_LEVEL=debug
     ports:
@@ -61,6 +61,8 @@ services:
     restart: always
     environment:
       POSTGRES_PASSWORD: zeebe
+    ports:
+      - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data/
     networks:
@@ -98,6 +100,30 @@ services:
       - zeebe
     networks:
       - zeebe_network
+
+  zeebe-http-worker:
+    container_name: zeebe-http-worker
+    image: ghcr.io/camunda-community-hub/zeebe-http-worker:1.0.0
+    environment:
+      - zeebe.client.broker.contactPoint=zeebe:26500
+    depends_on:
+      - zeebe
+    networks:
+      - zeebe_network
+
+  zeebe-dmn-worker:
+    container_name: zeebe-dmn-worker
+    image: ghcr.io/camunda-community-hub/zeebe-dmn-worker:1.2.0
+    environment:
+      - zeebe.client.broker.gatewayAddress=zeebe:26500
+      - zeebe.client.worker.dmn.repository=/usr/share/zeebe/dmn-repo
+    volumes:
+      - ./dmn-repo:/usr/share/zeebe/dmn-repo
+    depends_on:
+      - zeebe
+    networks:
+      - zeebe_network
+
 volumes:
   postgres-data:
     driver: local
